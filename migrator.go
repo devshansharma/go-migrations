@@ -104,16 +104,34 @@ type table struct {
 	fields []*field
 }
 
+func (t *table) GetTableName () string {
+	return t.tableName
+}
+
+func (t *table) GetModel () interface{} {
+	return t.model
+}
+
+func (t *table) GetModelName () string {
+	return t.modelName
+}
+
+func (t *table) GetFields () []*field {
+	return t.fields
+}
+
+
 func (t *table) String () {
-	fmt.Printf("Table Name: %q\n", t.tableName)
-	fmt.Printf("Model Name: %q\n", t.modelName)
-	for i := 0; i < len(t.fields); i++ {
-		t.fields[i].String()
+	fmt.Printf("Table Name: %q\n", t.GetTableName())
+	fmt.Printf("Model Name: %q\n", t.GetModelName())
+	fields := t.GetFields()
+	for i := 0; i < len(fields); i++ {
+		fields[i].String()
 	}	
 }
 
 
-func parseToColumn (fieldName string) string {
+func ParseToColumn (fieldName string) string {
 	newName := ""
 
 	for i, v := range fieldName {
@@ -145,7 +163,7 @@ func parseToColumn (fieldName string) string {
 	return newName
 }
 
-func (t *table) addFields (iface interface{}) {
+func (t *table) AddFields (iface interface{}) {
 	// iface type
 	ift := reflect.TypeOf(iface)
 	if ift.Kind() == reflect.Ptr {
@@ -164,9 +182,9 @@ func (t *table) addFields (iface interface{}) {
 
 		// if embedded struct
 		if ft.Anonymous {
-			t.addFields(ifv.Field(i).Interface())
+			t.AddFields(ifv.Field(i).Interface())
 		} else {
-			t.fields = append(t.fields, &field{name:ft.Name, column:parseToColumn(ft.Name)})
+			t.fields = append(t.fields, &field{name:ft.Name, column:ParseToColumn(ft.Name)})
 		}
 
 	}
@@ -187,16 +205,16 @@ func NewMigrate (db Idb) *migrate {
 
 
 func (m *migrate) AutoMigrate (model interface{}) {
-	table, err := m.addTable(model)
+	table, err := m.AddTable(model)
 	if err != nil {
 		panic(err.Error())
 	}
 
-	table.addFields(model)
-	table.String()
+	table.AddFields(model)
+	// table.String()
 }
 
-func (m *migrate) addTable (model interface{}) (*table, error) {
+func (m *migrate) AddTable (model interface{}) (*table, error) {
 	var tableName string
 
 	ft := reflect.TypeOf(model)
