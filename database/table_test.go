@@ -9,8 +9,8 @@ import (
 
 type User struct {
 	ID        uint64
-	Name      string `migrator:"varchar(30)"`
-	Email     string `migrator:"unique,index:"`
+	Name      string `migrator:"varchar(30),notNull"`
+	Email     string `migrator:"unique,index:,notNull"`
 	IsActive  bool   `migrator:"default(0)"`
 	CompanyID uint64 `migrator:"foreignKey(company,id)"`
 	CreatedAt time.Time 

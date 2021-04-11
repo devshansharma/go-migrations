@@ -24,9 +24,7 @@ func NewTable(model interface{}) *Table {
 	}
 
 	t.SetTableName().
-		AddColumns().
-		SetPrimaryKey().
-		AddForeignKeys()
+		AddColumns()
 
 	t.migrationName = fmt.Sprintf("create_%s_table", t.tableName)
 	return t
@@ -34,10 +32,6 @@ func NewTable(model interface{}) *Table {
 
 func (t *Table) GetTableName() string {
 	return t.tableName
-}
-
-func (t *Table) GetPrimaryKeyString() string {
-	return fmt.Sprintf("PRIMARY KEY (%s)", t.primaryKey)
 }
 
 func (t *Table) SetTableName() *Table {
@@ -61,19 +55,8 @@ func (t *Table) SetTableName() *Table {
 }
 
 func (t *Table) AddColumns() *Table {
-	cols := GetStructFields(t.model)
+	cols := GetStructFields(t.model, t.tableName)
 	t.columns = append(t.columns, cols...)
-	return t
-}
-
-func (t *Table) SetPrimaryKey() *Table {
-	// t.primaryKey = name
-	return t
-}
-
-func (t *Table) AddForeignKeys() *Table {
-	// f := NewForeignKey(t.tableName)
-	// t.foreignKey = append(t.foreignKey, f)
 	return t
 }
 
@@ -82,10 +65,6 @@ func (t *Table) String() string {
 
 	for _, c := range t.columns {
 		columnSlice = append(columnSlice, c.String())
-	}
-	columnSlice = append(columnSlice, t.GetPrimaryKeyString())
-	for _, f := range t.foreignKey {
-		columnSlice = append(columnSlice, f.String())
 	}
 
 	colString := strings.Join(columnSlice, ", ")
@@ -96,20 +75,3 @@ func (t *Table) String() string {
 	)
 	return query
 }
-
-// const (
-// 	foreignTag string = "foreignKey\\(([a-zA-Z_-]+),([a-zA-Z_-]+)\\)"
-// 	DeleteTag  string = "onDelete\\(([a-zA-Z]+)\\)"
-// 	varcharTag string = "varchar\\(([0-9]+)\\)"
-
-// 	migrationTableName string = "migration"
-// 	createTableStr     string = "CREATE TABLE IF NOT EXISTS %s (%s) "
-// )
-
-// var (
-// 	ErrNotAStruct error = errors.New("Model is not a struct")
-
-// 	regFKTag      = regexp.MustCompile(foreignTag)
-// 	regOnDelTag   = regexp.MustCompile(DeleteTag)
-// 	regVarcharTag = regexp.MustCompile(varcharTag)
-// )

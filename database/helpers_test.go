@@ -7,6 +7,6 @@ import (
 
 
 func TestGetStructFields (t *testing.T) {
-	database.GetStructFields(&User{})
+	database.GetStructFields(&User{},"users")
 	t.Errorf("unknown")
 }

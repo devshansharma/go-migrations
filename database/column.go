@@ -11,14 +11,17 @@ var (
 	DeleteTag  string = "onDelete\\(([a-zA-Z]+)\\)"
 	varcharTag string = "varchar\\(([0-9]+)\\)"	
 	foreignTag string = "foreignKey\\(([a-zA-Z_-]+),([a-zA-Z_-]+)\\)"
+	indexTag string = "index:([a-zA-Z_]+)"
 
 	regFKTag      = regexp.MustCompile(foreignTag)	
 	regOnDelTag   = regexp.MustCompile(DeleteTag)
 	regVarcharTag = regexp.MustCompile(varcharTag)
+	regIndexTag = regexp.MustCompile(indexTag)
 )
 
 
 type Column struct {
+	tableName string
 	name string
 	tags string
 	colType string
@@ -32,13 +35,14 @@ type Column struct {
 	fCol string
 
 	varcharLength string
-	index bool
+	index string
 	unique bool
 }
 
-func NewColumn (name string) *Column {
+func NewColumn (name string, tableName string) *Column {
 	return &Column{
 		name : ParseColumnNames(name),
+		tableName : tableName,
 		varcharLength:"255",
 	}
 }
@@ -90,7 +94,12 @@ func (c *Column) parseTags (tags string) {
 	}
 
 	if strings.Contains(tags, "index") {
-		c.index = true
+		index := regIndexTag.FindStringSubmatch(tags)
+		idx_name := "idx_" + c.name
+		if len(index) > 1 {
+			idx_name = index[1]
+		}
+		c.index = idx_name
 	}
 
 	if strings.Contains(tags, "unique") {

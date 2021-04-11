@@ -39,7 +39,7 @@ func ParseColumnNames (fieldName string) string {
 }
 
 
-func GetStructFields (iface interface{}) []*Column {
+func GetStructFields (iface interface{}, tableName string) []*Column {
 	columnSlice := make([]*Column,0)
 
 	ift := reflect.TypeOf(iface)
@@ -57,11 +57,11 @@ func GetStructFields (iface interface{}) []*Column {
 
 		// if embedded struct
 		if ft.Anonymous {
-			cols := GetStructFields(ifv.Field(i).Interface())
+			cols := GetStructFields(ifv.Field(i).Interface(), tableName)
 			columnSlice = append(columnSlice, cols...)
 		} else {
 			tag, _ := ft.Tag.Lookup("migrator")
-			col := NewColumn(ft.Name)
+			col := NewColumn(ft.Name, tableName)
 			col.SetType(tag, ft.Type)
 			columnSlice = append(columnSlice, col)
 		}
