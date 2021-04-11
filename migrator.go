@@ -1,12 +1,12 @@
 package migrator
 
-import (
-	"reflect"
-	"time"
-	"fmt"
-	"errors"
-	"strings"
-)
+// import (
+// 	"reflect"
+// 	"sync"
+// 	"fmt"
+// 	"strings"
+// 	"saketsharma0805/migrator/database"
+// )
 
 /*
 	migrator use case
@@ -79,178 +79,89 @@ import (
 
 */
 
-var (
-	ErrNotAStruct error = errors.New("Model is not a struct")
-)
 
-type Idb interface {
-	Query()
-}
-
-type field struct {
-	name string
-	column string
-	attribute string
-}
-
-func (f *field) String () {
-	fmt.Printf("[Field] Name: %s, Column: %s\n", f.name, f.column)
-}
-
-type table struct {
-	tableName string
-	model interface{}
-	modelName string
-	fields []*field
-}
-
-func (t *table) GetTableName () string {
-	return t.tableName
-}
-
-func (t *table) GetModel () interface{} {
-	return t.model
-}
-
-func (t *table) GetModelName () string {
-	return t.modelName
-}
-
-func (t *table) GetFields () []*field {
-	return t.fields
-}
+// func NewMigrate (db database.Idb) *migrate {
+// 	return &migrate{
+// 		db : db,
+// 		table : make([]*database.Table,0),
+// 		migrateTableExists: false,
+// 		mu : sync.RWMutex{},
+// 	}
+// }
 
 
-func (t *table) String () {
-	fmt.Printf("Table Name: %q\n", t.GetTableName())
-	fmt.Printf("Model Name: %q\n", t.GetModelName())
-	fields := t.GetFields()
-	for i := 0; i < len(fields); i++ {
-		fields[i].String()
-	}	
-}
+// type migrate struct {
+// 	db database.Idb
+// 	migrateTableExists bool
+// 	table []*database.Table
+// 	mu sync.RWMutex
+// }
 
+// func (m *migrate) createMigrationTable () {
+// 	m.migrateTableExists = true
+// 	sql := CreateTableStr + DefaultEngine + DefaultCharset + DefaultCollation
+// 	columnStr := `id int(64) PRIMARY KEY AUTO_INCREMENT,
+// 		migration_name varchar(190) not null,
+// 		table_name varchar(60) not null,
+// 		created_at datetime default current_timestamp
+// 	`
+// 	sql = fmt.Sprintf(sql, migrationTableName, columnStr)
+// 	m.db.Exec(sql)
+// }
+ 
+// func (m *migrate) String () {
+// 	for _, t := range m.table {
+// 		t.String()
+// 	}
+// }
 
-func ParseToColumn (fieldName string) string {
-	newName := ""
+// func (m *migrate) AutoMigrate (model interface{}) {
+// 	m.mu.Lock()
+// 	defer m.mu.Unlock()
 
-	for i, v := range fieldName {
-		// uppercase 
-		if v >= 65 && v <= 90 {
+// 	if !m.migrateTableExists {
+// 		m.createMigrationTable()
+// 	}
 
-			// for i > 0, if the last character was in lower case, put _ 
-			// PostID
-			if i > 0 && (fieldName[i-1] >= 97 && fieldName[i-1] <= 123) {
-				newName += fmt.Sprintf("_%c", v+32)	
-				continue
-			}
-
-			// if next character in lower case, put _
-			// FKPost
-			if i > 0 && len(fieldName) > i+1 && fieldName[i+1] >= 97 && fieldName[i+1] <= 123 {
-				newName += fmt.Sprintf("_%c", v+32)	
-				continue
-			}
-
-			// first character
-			newName += fmt.Sprintf("%c", v+32)	
-			
-		} else {
-			newName += fmt.Sprintf("%c", v)
-		}
-	}
-
-	return newName
-}
-
-func (t *table) AddFields (iface interface{}) {
-	// iface type
-	ift := reflect.TypeOf(iface)
-	if ift.Kind() == reflect.Ptr {
-		ift = ift.Elem()
-	}
-
-	// iface value, 
-	ifv := reflect.ValueOf(iface)
-	if ifv.Kind() == reflect.Ptr {
-		ifv = ifv.Elem()
-	}
-
-	// loop through all fields
-	for i :=0; i < ift.NumField(); i++ {
-		ft := ift.Field(i)
-
-		// if embedded struct
-		if ft.Anonymous {
-			t.AddFields(ifv.Field(i).Interface())
-		} else {
-			t.fields = append(t.fields, &field{name:ft.Name, column:ParseToColumn(ft.Name)})
-		}
-
-	}
-
+// 	table, err := m.AddTable(model)
+// 	if err != nil {
+// 		panic(err.Error())
+// 	}
 	
-}
+// 	table.AddFields(model)
+// 	table.ParseTags()
+// 	table.CreateQuery()
+// 	m.db.Exec(table.createdQuery)
+// }
 
-type migrate struct {
-	db Idb
-	table []*table
-}
+// func (m *migrate) AddTable (model interface{}) (*table, error) {
+// 	var tableName string
 
-func NewMigrate (db Idb) *migrate {
-	return &migrate{
-		db : db,
-	}
-}
+// 	ft := reflect.TypeOf(model)
+// 	if ft.Kind() == reflect.Ptr {
+// 		ft = ft.Elem()
+// 	}
 
+// 	if ft.Kind() == reflect.Struct {
+// 		tableName = strings.ToLower(ft.Name())
 
-func (m *migrate) AutoMigrate (model interface{}) {
-	table, err := m.AddTable(model)
-	if err != nil {
-		panic(err.Error())
-	}
+// 		// check if tableName method is defined
+// 		tMethod, ok := model.(interface{TableName()string})
+// 		if ok {
+// 			tableName = tMethod.TableName()
+// 		}
 
-	table.AddFields(model)
-	// table.String()
-}
+// 		t := &table{
+// 			tableName : tableName,
+// 			model : model,
+// 			modelName: ft.Name(),
+// 			fields : make([]*field, 0),
+// 		}
+// 		m.table = append(m.table, t)
 
-func (m *migrate) AddTable (model interface{}) (*table, error) {
-	var tableName string
+// 		return t, nil
+// 	}
 
-	ft := reflect.TypeOf(model)
-	if ft.Kind() == reflect.Ptr {
-		ft = ft.Elem()
-	}
+// 	return nil, ErrNotAStruct	
+// }
 
-	if ft.Kind() == reflect.Struct {
-		tableName = strings.ToLower(ft.Name())
-
-		// check if tableName method is defined
-		tMethod, ok := model.(interface{TableName()string})
-		if ok {
-			tableName = tMethod.TableName()
-		}
-
-		t := &table{
-			tableName : tableName,
-			model : model,
-			modelName: ft.Name(),
-			fields : make([]*field, 0),
-		}
-		m.table = append(m.table, t)
-
-		return t, nil
-	}
-
-	return nil, ErrNotAStruct	
-}
-
-
-
-// Model for common fields
-type Model struct {
-	ID         uint64 `migrator:"primaryKey"`
-	CreatedAt  time.Time
-	ModifiedAt time.Time
-	DeletedAt  time.Time `migrator:"index"`
-}
